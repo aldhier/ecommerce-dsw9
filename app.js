@@ -10,6 +10,9 @@ const { Product, Order, OrderItem } = require('./models');
 const productRoutes  = require('./routes/products');
 const cartRoutes     = require('./routes/cart');
 const checkoutRoutes = require('./routes/checkout');
+const storeAuthRoutes = require('./routes/storeAuth');
+const userAuthRoutes = require('./routes/userAuth');
+const { attachLocals } = require('./middleware/authMiddleware');
 
 const app  = express();
 const port = process.env.PORT || 3000;
@@ -29,6 +32,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 3600000 }
 }));
+app.use(attachLocals);
 
 app.use((req, res, next) => {
   if (!req.session.cart) {
@@ -37,18 +41,18 @@ app.use((req, res, next) => {
   res.locals.cartItemCount = req.session.cart.totalQty || 0;
   next();
 });
-/*
-app.get('/', (req, res) => {
-  res.send(`
-    Hello World - ALDHIER TORRES
-    La aplicacion funciona en Render.
-    Puerto: ${port} | Entorno: ${process.env.NODE_ENV || 'development'}
-  `);
-});
-*/
+
 app.use('/',         productRoutes);
 app.use('/cart',     cartRoutes);
 app.use('/checkout', checkoutRoutes);
+app.use('/store', storeAuthRoutes);
+app.use('/user', userAuthRoutes);
+
+app.use(['/store/login', '/store/register',
+         '/user/login',  '/user/register',
+         '/store-admin', '/customer'],
+  (req, res, next) => { res.locals.layout = false; next(); }
+);
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Pagina no encontrada' });
